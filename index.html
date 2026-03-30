@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Exide Barcode Label Generator</title>
+<style>
+:root{
+  --bg:#000000;--panel:#161b22;--card:#1c2128;--border:#30363d;
+  --accent:#1bec8a;--accent2:#1f6feb;--text:#e6edf3;--muted:#7d8590;
+  --danger:#f85149;--warn:#d0d30f;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+.hdr{background:var(--panel);border-bottom:3px solid var(--accent);padding:13px 24px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:9}
+.hdr-logo{background:var(--accent);color:#fff;font-weight:900;font-size:1.1rem;padding:6px 12px;border-radius:6px;letter-spacing:1px}
+.hdr-title{font-size:1.4rem;font-weight:800;letter-spacing:2px;color:var(--accent);line-height:1}
+.hdr-sub{font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-top:2px}
+.hdr-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.chip{font-size:.72rem;font-weight:700;padding:4px 11px;border-radius:20px}
+.chip-g{background:rgba(46,160,67,.15);color:var(--accent);border:1px solid var(--accent)}
+.chip-d{background:var(--card);color:var(--muted);border:1px solid var(--border)}
+
+.main{max-width:900px;margin:0 auto;padding:24px 18px 60px;display:flex;flex-direction:column;gap:18px}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px}
+.clabel{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.clabel::before{content:'';display:block;width:3px;height:13px;background:var(--accent);border-radius:2px}
+
+/* INPUTS GRID */
+.input-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:6px}
+.badge-seq{background:rgba(101, 116, 137, 0.2);color:#79c0ff;border:1px solid rgba(31,111,235,.4);border-radius:4px;font-size:.62rem;padding:1px 7px;font-weight:700;letter-spacing:1px}
+.badge-fix{background:rgba(125,133,144,.1);color:var(--muted);border:1px solid var(--border);border-radius:4px;font-size:.62rem;padding:1px 7px;font-weight:700;letter-spacing:1px}
+.field input{background:var(--panel);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:monospace;font-size:1rem;padding:10px 13px;outline:none;transition:border-color .2s}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(46,160,67,.12)}
+.field input[readonly]{color:var(--muted);cursor:not-allowed;opacity:.7}
+.field input.seq{border-color:rgba(2, 172, 181, 0.5);color:#79c0ff}
+.field input.seq:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(20, 100, 222, 0.12)}
+
+.hint{font-size:.75rem;color:var(--muted);margin-top:4px}
+
+/* ACTIVE PANEL */
+.active-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.idb{display:flex;flex-direction:column;gap:3px;min-width:80px}
+.idb-lbl{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted)}
+.idb-val{font-family:monospace;font-size:1.3rem;color:var(--accent);letter-spacing:2px;line-height:1.2;word-break:break-all}
+.idb-val.blue{color:#79c0ff}
+.idb-val.grn{color:var(--accent);font-size:1.6rem}
+
+.btn-print{margin-left:auto;background:linear-gradient(135deg,var(--accent),#116329);color:#fff;border:none;border-radius:12px;font-family:Arial,sans-serif;font-size:1.15rem;font-weight:800;letter-spacing:1px;padding:15px 30px;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;box-shadow:0 4px 20px rgba(46,160,67,.3);transition:transform .15s,box-shadow .15s}
+.btn-print:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(46,160,67,.45)}
+.btn-print:active{transform:scale(.97)}
+
+.act-btns{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;gap:8px}
+.btn-ghost{background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:Arial,sans-serif;font-size:.88rem;font-weight:700;padding:7px 15px;cursor:pointer;transition:border-color .2s,color .2s}
+.btn-ghost:hover{border-color:var(--text);color:var(--text)}
+.btn-ghost.danger:hover{border-color:var(--danger);color:var(--danger)}
+
+/* PREVIEW */
+.slbl{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.slbl::before{content:'';display:block;width:3px;height:13px;background:#5d86aa;border-radius:2px}
+.sg{display:flex;gap:14px;flex-wrap:wrap}
+.stk-wrap{background:#e8e4e4;border-radius:6px;box-shadow:0 2px 14px rgba(0,0,0,.5);flex-shrink:0;overflow:hidden}
+.stk-wrap img{display:block}
+
+/* EMPTY */
+.empty{display:flex;flex-direction:column;align-items:center;gap:16px;padding:48px 20px;border:2px dashed var(--border);border-radius:12px}
+.empty-msg{font-size:.88rem;color:var(--muted);text-align:center}
+
+/* HISTORY */
+.htags{display:flex;flex-wrap:wrap;gap:8px}
+.htag{font-family:monospace;font-size:.82rem;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:4px 12px;color:var(--muted);letter-spacing:1px}
+.htag.lat{background:rgba(46,160,67,.1);border-color:var(--accent);color:var(--accent)}
+
+.toast{position:fixed;bottom:20px;right:20px;background:var(--accent);color:#fff;font-family:Arial,sans-serif;font-size:1rem;font-weight:700;padding:12px 18px;border-radius:10px;box-shadow:0 4px 20px rgba(46,160,67,.4);opacity:0;transform:translateY(14px) scale(.95);transition:all .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none;z-index:999}
+.toast.show{opacity:1;transform:translateY(0) scale(1)}
+.toast.warn{background:var(--danger)}
+
+.btn-start{background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:Arial,sans-serif;font-size:1.05rem;font-weight:800;letter-spacing:1px;padding:12px 28px;cursor:pointer;transition:background .15s}
+.btn-start:hover{background:#3fb950}
+
+@media(max-width:600px){
+  .input-grid{grid-template-columns:1fr}
+  .active-row{gap:10px}
+  .btn-print{margin-left:0;width:100%;justify-content:center}
+}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-logo">⚡</div>
+  <div>
+    <div class="hdr-title">EXIDE LABEL GENERATOR</div>
+    <div class="hdr-sub">Lithium-Ion Battery </div>
+  </div>
+  <div class="hdr-right" id="hdRight" style="display:none">
+    <span class="chip chip-g">● Active</span>
+    <span class="chip chip-d" id="hdSets">0 Sets</span>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- SETUP CARD -->
+  <section class="card" id="setupCard">
+    <div class="clabel">Label Setup — </div>
+    <div class="input-grid">
+
+      <div class="field">
+        <label>Company Name <span class="badge-fix">FIXED</span></label>
+        <input type="text" id="f1" value="Exide Energy Solution Ltd"/>
+        <div class="hint"> </div>
+      </div>
+
+      <div class="field">
+        <label>Battery Type <span class="badge-fix">FIXED</span></label>
+        <input type="text" id="f2" value="Lithium-Ion Battery / LFP"/>
+      </div>
+
+      <div class="field">
+        <label>Model Number <span class="badge-fix">FIXED</span></label>
+        <input type="text" id="f3" value="MPRERLF1000500-08001N"/>
+      </div>
+
+      <div class="field">
+        <label>Specs <span class="badge-fix">FIXED</span></label>
+        <input type="text" id="f4" value="25.6V 100Ah / 2.56KWh"/>
+      </div>
+
+      <div class="field">
+        <label>MODEL CODE Start <span class="badge-seq">SEQUENCE</span></label>
+        <input type="text" id="f5" value="EEMD00064_C" class="seq" placeholder="EEMD00064_C"/>
+        <div class="hint">64 → 65 → 66 ... </div>
+      </div>
+
+      <div class="field">
+        <label>Serial Number Start <span class="badge-seq">SEQUENCE</span></label>
+        <input type="text" id="f6" value="2026-C-A-1-01045" class="seq" placeholder="2026-C-A-1-01045"/>
+        <div class="hint">01045 → 01046 → 01047 ...</div>
+      </div>
+
+    </div>
+    <div style="margin-top:18px;display:flex;gap:10px;align-items:center">
+      <button class="btn-start" onclick="startSession()">SET &amp; START ▶</button>
+      <span style="font-size:.8rem;color:var(--muted)"></span>
+    </div>
+  </section>
+
+  <!-- ACTIVE PANEL -->
+  <section class="card" id="activeCard" style="display:none">
+    <div class="active-row">
+      <div class="idb">
+        <div class="idb-lbl">Sets Done</div>
+        <div class="idb-val grn" id="setsId">0</div>
+      </div>
+      <div class="idb">
+        <div class="idb-lbl">Current MODEL CODE</div>
+        <div class="idb-val" id="curCode" style="font-size:1rem">—</div>
+      </div>
+      <div class="idb">
+        <div class="idb-lbl">Current Serial</div>
+        <div class="idb-val blue" id="curSerial" style="font-size:.95rem">—</div>
+      </div>
+      <button class="btn-print" onclick="doPrint()">🖨 PRINT LABEL</button>
+    </div>
+    <div class="act-btns">
+      <button class="btn-ghost" onclick="changeSetup()">✎ Change ID</button>
+      <button class="btn-ghost danger" onclick="resetAll()">↺ Reset</button>
+    </div>
+  </section>
+
+  <!-- PREVIEW -->
+  <section id="prevSec" style="display:none">
+    <div class="slbl">Preview — 1 Label</div>
+    <div class="sg" id="sGrid"></div>
+  </section>
+
+  <!-- EMPTY -->
+  <section class="empty" id="empState">
+    <div style="font-size:3rem">⚡</div>
+    <div class="empty-msg"> </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section class="card" id="histCard" style="display:none">
+    <div class="clabel">Print History</div>
+    <div class="htags" id="histList"></div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+<canvas id="offCanvas" style="position:fixed;left:-9999px;top:0;visibility:hidden"></canvas>
+
+<script>
+/* ═══════════════════════════════════════════
+   CODE128B — self-contained barcode encoder
+═══════════════════════════════════════════ */
+const C128=[
+  '212222','222122','222221','121223','121322','131222','122213','122312','132212','221213',
+  '221312','231212','112232','122132','122231','113222','123122','123221','223211','221132',
+  '221231','213212','223112','312131','311222','321122','321221','312212','322112','322211',
+  '212123','212321','232121','111323','131123','131321','112313','132113','132311','211313',
+  '231113','231311','112133','112331','132131','113123','113321','133121','313121','211331',
+  '231131','213113','213311','213131','311123','311321','331121','312113','312311','332111',
+  '314111','221411','431111','111224','111422','121124','121421','141122','141221','112214',
+  '112412','122114','122411','142112','142211','241211','221114','413111','241112','134111',
+  '111242','121142','121241','114212','124112','124211','411212','421112','421211','212141',
+  '214121','412121','111143','111341','131141','114113','114311','411113','411311','113141',
+  '114131','311141','411131','211412','211214','211232'
+];
+const STOP_W=[2,3,3,1,1,1,2];
+
+function encode128B(text){
+  const vals=[104];
+  for(let i=0;i<text.length;i++) vals.push(text.charCodeAt(i)-32);
+  let chk=104;
+  for(let i=0;i<text.length;i++) chk+=(i+1)*(text.charCodeAt(i)-32);
+  vals.push(chk%103);
+  let bits=[];
+  for(let q=0;q<10;q++) bits.push(0);
+  for(const v of vals){
+    const w=C128[v];
+    for(let i=0;i<w.length;i++)
+      for(let j=0;j<parseInt(w[i]);j++) bits.push((i%2===0)?1:0);
+  }
+  for(let i=0;i<STOP_W.length;i++)
+    for(let j=0;j<STOP_W[i];j++) bits.push((i%2===0)?1:0);
+  for(let q=0;q<10;q++) bits.push(0);
+  return bits;
+}
+
+/* ═══════════════════════════════════════════
+   SEQUENCE HELPERS
+═══════════════════════════════════════════ */
+
+// EEMD00064_C → extract number, increment, rebuild
+function parseModelCode(str){
+  // Match digits in the code
+  const m = str.match(/^([A-Z]+0*)(\d+)(_[A-Z]+)$/);
+  if(m) return { prefix: m[1], num: parseInt(m[2]), numLen: m[2].length, suffix: m[3] };
+  // fallback
+  const m2 = str.match(/(\d+)/);
+  if(m2) return { full: str, matchIdx: m2.index, num: parseInt(m2[0]), numLen: m2[0].length };
+  return null;
+}
+
+function buildModelCode(parsed, num){
+  if(parsed.prefix !== undefined){
+    const padded = String(num).padStart(parsed.numLen, '0');
+    return parsed.prefix + padded + parsed.suffix;
+  }
+  return parsed.full;
+}
+
+// 2026-C-A-1-01045 → last segment increments
+function parseSerial(str){
+  const parts = str.split('-');
+  const last  = parts[parts.length-1];
+  return { parts, lastLen: last.length, num: parseInt(last) };
+}
+
+function buildSerial(parsed, num){
+  const parts = [...parsed.parts];
+  parts[parts.length-1] = String(num).padStart(parsed.lastLen, '0');
+  return parts.join('-');
+}
+
+// For Excel: remove all hyphens → 2026CA101045
+function serialForExcel(serialStr){
+  return serialStr.replace(/-/g,'');
+}
+
+/* ═══════════════════════════════════════════
+   LABEL BUILDER — draws full label on canvas
+   Returns base64 PNG
+
+   Layout (60mm × 90mm):
+   ┌─────────────────────────────────────┐
+   │  Exide Energy Solution Ltd          │
+   │  Lithium-Ion Battery / LFP          │
+   │  MPRERLF1000500-08001N              │
+   │  25.6V 100Ah / 2.56KWh             │
+   │                                      │
+   │  MODEL CODE: EEMD00064_C            │
+   │  ▌▌▌▌▌ barcode1 ▌▌▌▌▌             │
+   │                                      │
+   │  2026-C-A-1-01045                   │
+   │  ▌▌▌▌▌ barcode2 ▌▌▌▌▌             │
+   └─────────────────────────────────────┘
+═══════════════════════════════════════════ */
+function buildLabel(data, pxPerMm){
+  // Sticker: 90mm wide x 60mm tall (9cm x 6cm)
+  // 1 barcode only — serial number
+  const W = Math.round(90*pxPerMm);
+  const H = Math.round(60*pxPerMm);
+  const R = Math.round(2*pxPerMm);
+  const P = Math.round(3*pxPerMm);
+
+  const cv = document.getElementById('offCanvas');
+  cv.width=W; cv.height=H;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+
+  function rrect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+    ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+    ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+    ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r);
+    ctx.closePath();
+  }
+
+  ctx.fillStyle='#fff';
+  rrect(0,0,W,H,R); ctx.fill();
+  ctx.save();
+  rrect(0,0,W,H,R); ctx.clip();
+
+  let y = P;
+
+  // Company name
+  const compSize = Math.round(3.5*pxPerMm);
+  ctx.fillStyle='#000';
+  ctx.font=`900 ${compSize}px Arial,sans-serif`;
+  ctx.textBaseline='top'; ctx.textAlign='left';
+  ctx.fillText(data.company, P, y);
+  y += compSize + Math.round(1*pxPerMm);
+
+  // Battery type
+  const txtSize = Math.round(2.6*pxPerMm);
+  ctx.font=`bold ${txtSize}px Arial,sans-serif`;
+  ctx.fillText(data.battType, P, y);
+  y += txtSize + Math.round(0.8*pxPerMm);
+
+  // Model number
+  ctx.fillText(data.modelNum, P, y);
+  y += txtSize + Math.round(0.8*pxPerMm);
+
+  // Specs
+  ctx.fillText(data.specs, P, y);
+  y += txtSize + Math.round(0.8*pxPerMm);
+
+  // MODEL CODE
+  ctx.fillText('MODEL CODE: '+data.modelCode, P, y);
+  y += txtSize + Math.round(1.5*pxPerMm);
+
+  // Separator
+  ctx.fillStyle='#ccc';
+  ctx.fillRect(P, y, W-P*2, Math.max(1,Math.round(0.3*pxPerMm)));
+  y += Math.round(1.5*pxPerMm);
+
+  // Serial number text
+  const serSize = Math.round(2.8*pxPerMm);
+  ctx.fillStyle='#000';
+  ctx.font=`bold ${serSize}px Arial,sans-serif`;
+  ctx.fillText(data.serial, P, y);
+  y += serSize + Math.round(1*pxPerMm);
+
+  // ── ONE barcode: serial number (full width) ──
+  const bcVal  = data.serial; // keep hyphens in barcode
+  const bits   = encode128B(bcVal);
+  const availW = W - P*2;
+  const mw     = availW / bits.length;
+  // Barcode height = remaining space minus bottom padding
+  const bcH    = H - y - P;
+  ctx.fillStyle='#000';
+  for(let i=0;i<bits.length;i++){
+    if(bits[i]) ctx.fillRect(P + i*mw, y, Math.ceil(mw)+0.4, bcH);
+  }
+
+  ctx.restore();
+
+  // Border
+  ctx.strokeStyle='#aaa';
+  ctx.lineWidth=Math.max(1,Math.round(0.3*pxPerMm));
+  rrect(ctx.lineWidth/2,ctx.lineWidth/2,W-ctx.lineWidth,H-ctx.lineWidth,R);
+  ctx.stroke();
+
+  return cv.toDataURL('image/png');
+}
+
+
+/* ═══════════════════════════════════════════
+   APP STATE
+═══════════════════════════════════════════ */
+let session     = null; // { f1..f6, codeNum, serialNum, codeParsed, serialParsed }
+let printCount  = 0;
+let history     = [];
+let toastTmr    = null;
+
+const $=id=>document.getElementById(id);
+
+function syncUI(){
+  const code   = buildModelCode(session.codeParsed,   session.codeNum);
+  const serial = buildSerial(session.serialParsed, session.serialNum);
+  $('curCode').textContent   = code;
+  $('curSerial').textContent = serial;
+  $('setsId').textContent    = String(printCount);
+  $('hdSets').textContent    = printCount+(printCount===1?' Set':' Sets');
+}
+
+function startSession(){
+  const f1=$('f1').value.trim();
+  const f2=$('f2').value.trim();
+  const f3=$('f3').value.trim();
+  const f4=$('f4').value.trim();
+  const f5=$('f5').value.trim();
+  const f6=$('f6').value.trim();
+
+  if(!f1||!f2||!f3||!f4||!f5||!f6){
+    showToast('⚠ Sab fields bharo!',true); return;
+  }
+
+  const codeParsed   = parseModelCode(f5);
+  const serialParsed = parseSerial(f6);
+
+  if(!codeParsed){ showToast('⚠ MODEL CODE format sahi nahi!',true); return; }
+
+  session = {
+    f1,f2,f3,f4,
+    codeParsed, serialParsed,
+    codeNum:   codeParsed.num,
+    serialNum: serialParsed.num,
+  };
+
+  $('setupCard').style.display  = 'none';
+  $('activeCard').style.display = 'block';
+  $('empState').style.display   = 'none';
+  $('hdRight').style.display    = 'flex';
+  syncUI();
+  showToast('✔ Session shuru!');
+}
+
+function changeSetup(){
+  $('setupCard').style.display  = 'block';
+  $('activeCard').style.display = 'none';
+  $('f5').value = buildModelCode(session.codeParsed, session.codeNum);
+  $('f6').value = buildSerial(session.serialParsed,  session.serialNum);
+}
+
+function resetAll(){
+  if(printCount>0&&!confirm('Reset karo? Sab clear ho jayega.')) return;
+  session=null; printCount=0; history=[];
+  $('setupCard').style.display  = 'block';
+  $('activeCard').style.display = 'none';
+  $('prevSec').style.display    = 'none';
+  $('empState').style.display   = 'flex';
+  $('histCard').style.display   = 'none';
+  $('hdRight').style.display    = 'none';
+  $('sGrid').innerHTML=''; $('histList').innerHTML='';
+  $('f5').value='EEMD00064_C'; $('f6').value='2026-C-A-1-01045';
+  showToast('↺ Reset complete');
+}
+
+function doPrint(){
+  if(!session){ showToast('⚠ Pehle setup karo!',true); return; }
+
+  const code   = buildModelCode(session.codeParsed,   session.codeNum);
+  const serial = buildSerial(session.serialParsed, session.serialNum);
+
+  const labelData = { company:session.f1, battType:session.f2, modelNum:session.f3, specs:session.f4, modelCode:code, serial };
+
+  // Screen preview (4.2 px/mm)
+  const prevURL  = buildLabel(labelData, 4.2);
+  // Print: 8 px/mm for crisp output
+  const printURL = buildLabel(labelData, 8.0);
+
+  // Screen
+  const grid=$('sGrid'); grid.innerHTML='';
+  $('prevSec').style.display='block';
+  const wrap=document.createElement('div'); wrap.className='stk-wrap';
+  const img=document.createElement('img');
+  img.src=prevURL; img.alt='label';
+  img.style.cssText='width:360px;height:240px;display:block;';
+  wrap.appendChild(img); grid.appendChild(wrap);
+
+  // Print window — each label on its own 100×60mm page
+  const pw=window.open('','_blank','width=700,height=500');
+  if(!pw){ showToast('⚠ Pop-up blocked! Allow karo.',true); return; }
+
+  pw.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title> </title>
+<style>
+  @page{size:90mm 60mm;margin:0}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:#fff;width:90mm;height:60mm}
+  .lbl{width:90mm;height:60mm;display:flex;align-items:center;justify-content:center;background:#fff}
+  .lbl img{width:90mm;height:60mm;display:block;image-rendering:pixelated;image-rendering:crisp-edges}
+</style>
+</head><body>
+<div class="lbl"><img src="${printURL}"/></div>
+<script>window.onload=function(){setTimeout(function(){window.print();},500);}<\/script>
+</body></html>`);
+  pw.document.close();
+
+  // Update history
+  history.unshift({ code, serial });
+  if(history.length>15) history.pop();
+  printCount++;
+
+  // Increment both sequences
+  session.codeNum++;
+  session.serialNum++;
+  syncUI();
+  updateHistory();
+  showToast(`✔ ${code} | ${serial} — 1 label printed!`);
+}
+
+function updateHistory(){
+  $('histCard').style.display='block';
+  const hl=$('histList'); hl.innerHTML='';
+  history.forEach((v,i)=>{
+    const t=document.createElement('span');
+    t.className='htag'+(i===0?' lat':'');
+    t.textContent=v.code+' / '+v.serial.split('-').pop();
+    hl.appendChild(t);
+  });
+}
+
+function showToast(msg,warn=false){
+  const t=$('toast'); t.textContent=msg;
+  t.className='toast show'+(warn?' warn':'');
+  clearTimeout(toastTmr);
+  toastTmr=setTimeout(()=>{ t.className='toast'; },3000);
+}
+
+document.addEventListener('keydown',e=>{
+  const active=document.activeElement;
+  const inInput=active.tagName==='INPUT';
+  if(e.key==='Enter'&&inInput&&$('setupCard').style.display!=='none'){ startSession(); return; }
+  if(e.key==='p'&&session&&!inInput){ e.preventDefault(); doPrint(); }
+});
+</script>
+</body>
+</html>
